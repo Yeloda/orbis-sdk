@@ -1339,94 +1339,194 @@ export class Orbis {
 	**********************/
 
 	/** Helper to create a basic TileDocument on Ceramic */
-	async createTileDocument(content, tags, schema, family = "orbis", awaitIndex = false) {
+    async createTileDocument(content, tags, schema, family = "orbis", awaitIndex = false) {
+        /** User must be connected to call this function. */
+        if(!this.session || !this.session.id) {
+            console.log("User must be connected to call this function. Make sure to call the connect or isConnected function and to use the same orbis object across your application.");
+            return({ data: null, error: "User must be connected to call this function." });
+        }
 
-		/** User must be connected to call this function. */
-		if(!this.session || !this.session.id) {
-			console.log("User must be connected to call this function. Make sure to call the connect or isConnected function and to use the same orbis object across your application.");
-			return({ data: null, error: "User must be connected to call this function." });
-		}
+        let res;
 
-		let res;
+        /** Try to create TileDocument via API */
+        try {
+            const response = await fetch('https://sea-turtle-app-my8pq.ondigitalocean.app/create-tile-document', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content: content,
+                    tags: tags,
+                    schema: schema,
+                    family: family,
+                    user_did: this.session.id
+                })
+            });
 
-		/** Try to create TileDocument */
-		try {
-			let doc = await TileDocument.create(
-				this.ceramic,
-				/** Content of the post */
-				content,
-				/** Metadata */
-				{
-					family: family,
-					controllers: [this.session.id],
-					tags: tags,
-					schema: schema
-				},
-			);
+            const data = await response.json();
 
-			/** Await for indexing or not */
-			if(awaitIndex) {
-				await forceIndex(doc.id.toString());
-			} else {
-				forceIndex(doc.id.toString());
-			}
+            if (response.ok) {
+                res = {
+                    status: 200,
+                    doc: data.doc,
+                    result: data.result
+                }
+            } else {
+                res = {
+                    status: 300,
+                    error: data.error,
+                    result: data.result
+                }
+            }
+        } catch(e) {
+            console.log("Error creating TileDocument: ", e);
+            res = {
+                status: 300,
+                error: e,
+                result: "Error creating TileDocument."
+            }
+        }
+
+        /** Returning result */
+        return res;
+    }
+
+	/** Helper to create a basic TileDocument on Ceramic */
+	// async createTileDocument(content, tags, schema, family = "orbis", awaitIndex = false) {
+
+	// 	/** User must be connected to call this function. */
+	// 	if(!this.session || !this.session.id) {
+	// 		console.log("User must be connected to call this function. Make sure to call the connect or isConnected function and to use the same orbis object across your application.");
+	// 		return({ data: null, error: "User must be connected to call this function." });
+	// 	}
+
+	// 	let res;
+
+	// 	/** Try to create TileDocument */
+	// 	try {
+	// 		let doc = await TileDocument.create(
+	// 			this.ceramic,
+	// 			/** Content of the post */
+	// 			content,
+	// 			/** Metadata */
+	// 			{
+	// 				family: family,
+	// 				controllers: [this.session.id],
+	// 				tags: tags,
+	// 				schema: schema
+	// 			},
+	// 		);
+
+	// 		/** Await for indexing or not */
+	// 		if(awaitIndex) {
+	// 			await forceIndex(doc.id.toString());
+	// 		} else {
+	// 			forceIndex(doc.id.toString());
+	// 		}
 
 
-			/** Return JSON with doc object */
-			res = {
-				status: 200,
-				doc: doc.id.toString(),
-				result: "Success creating TileDocument."
-			}
-		} catch(e) {
-			console.log("Error creating TileDocument: ", e);
-			res = {
-				status: 300,
-				error: e,
-				result: "Error creating TileDocument."
-			}
-		}
+	// 		/** Return JSON with doc object */
+	// 		res = {
+	// 			status: 200,
+	// 			doc: doc.id.toString(),
+	// 			result: "Success creating TileDocument."
+	// 		}
+	// 	} catch(e) {
+	// 		console.log("Error creating TileDocument: ", e);
+	// 		res = {
+	// 			status: 300,
+	// 			error: e,
+	// 			result: "Error creating TileDocument."
+	// 		}
+	// 	}
 
-		/** Returning result */
-		return res;
-	}
+	// 	/** Returning result */
+	// 	return res;
+	// }
 
 	/** Helper to update an existing TileDocument */
+
 	async updateTileDocument(stream_id, content, tags, schema, family = "orbis") {
-		let res;
+        let res;
 
-		/** Try to update existing Ceramic document */
-		let doc;
-		try {
-			doc = await TileDocument.load(this.ceramic, stream_id);
-			await doc.update(content, {
-				family: family,
-				controllers: [this.session.id],
-				tags: tags,
-				schema: schema
-			});
+        /** Try to update existing document via API */
+        try {
+            const response = await fetch('https://sea-turtle-app-my8pq.ondigitalocean.app/update-tile-document', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    stream_id: stream_id,
+                    content: content,
+                    tags: tags,
+                    schema: schema,
+                    family: family
+                })
+            });
 
-			/** Force index document */
-			forceIndex(stream_id);
+            const data = await response.json();
 
-			/** Return JSON with doc object */
-			res = {
-				status: 200,
-				doc: stream_id,
-				result: "Success updating TileDocument."
-			}
-		} catch(e) {
-			res = {
-				status: 300,
-				error: e,
-				result: "Error updating TileDocument."
-			}
-		}
+            if (response.ok) {
+                res = {
+                    status: 200,
+                    doc: data.doc,
+                    result: data.result
+                }
+            } else {
+                res = {
+                    status: 300,
+                    error: data.error,
+                    result: data.result
+                }
+            }
+        } catch(e) {
+            res = {
+                status: 300,
+                error: e,
+                result: "Error updating TileDocument."
+            }
+        }
 
-		/** Returning result */
-		return res;
+        /** Returning result */
+        return res;
+    }
+	// async updateTileDocument(stream_id, content, tags, schema, family = "orbis") {
+	// 	let res;
 
-	}
+	// 	/** Try to update existing Ceramic document */
+	// 	let doc;
+	// 	try {
+	// 		doc = await TileDocument.load(this.ceramic, stream_id);
+	// 		await doc.update(content, {
+	// 			family: family,
+	// 			controllers: [this.session.id],
+	// 			tags: tags,
+	// 			schema: schema
+	// 		});
+
+	// 		/** Force index document */
+	// 		forceIndex(stream_id);
+
+	// 		/** Return JSON with doc object */
+	// 		res = {
+	// 			status: 200,
+	// 			doc: stream_id,
+	// 			result: "Success updating TileDocument."
+	// 		}
+	// 	} catch(e) {
+	// 		res = {
+	// 			status: 300,
+	// 			error: e,
+	// 			result: "Error updating TileDocument."
+	// 		}
+	// 	}
+
+	// 	/** Returning result */
+	// 	return res;
+
+	// }
 
 	/** Helper to create a deterministic TileDocument on Ceramic */
 	async deterministicDocument(content, tags, schema, family = "orbis") {
