@@ -3,11 +3,8 @@ import 'core-js/features/array/find';
 import 'core-js/features/array/includes';
 import 'core-js/features/number/is-nan';
 import 'react-native-url-polyfill/auto';
-import * as encoding from 'text-encoding';
 import { NativeModules } from 'react-native';
-import base64Decode from 'fast-base64-decode';
 import * as Crypto from 'expo-crypto';
-import { createHash as jsSha256Create } from 'js-sha256';
 
 if (typeof BigInt === 'undefined') global.BigInt = require('big-integer');
 
