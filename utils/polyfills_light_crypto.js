@@ -1,56 +1,55 @@
-global.Buffer = global.Buffer || require('buffer').Buffer
+global.Buffer = global.Buffer || require('buffer').Buffer;
 import 'core-js/features/array/find';
 import 'core-js/features/array/includes';
 import 'core-js/features/number/is-nan';
 import 'react-native-url-polyfill/auto';
 import * as encoding from 'text-encoding';
-const { NativeModules } = require('react-native')
-import base64Decode from 'fast-base64-decode'
-var sha256 = require('js-sha256');
-import 'react-native-webcrypto'
+import { NativeModules } from 'react-native';
+import base64Decode from 'fast-base64-decode';
 import * as Crypto from 'expo-crypto';
+import { createHash as jsSha256Create } from 'js-sha256';
 
-if (typeof BigInt === 'undefined') global.BigInt = require('big-integer')
+if (typeof BigInt === 'undefined') global.BigInt = require('big-integer');
 
+// Initialisation globale de crypto si inexistant
 if (typeof global.crypto !== 'object') {
   console.log("global.crypto doesn't exist, we initialize it.");
-  global.crypto = {}
+  global.crypto = {};
 }
 
-/** Polyfill to fix allSettled */
+/** Polyfill Promise.allSettled */
 Promise.allSettled = function (promises) {
-  let mappedPromises = promises.map((p) => {
-    return p
-      .then((value) => {
-        return {
-          status: 'fulfilled',
-          value,
-        };
-      })
-      .catch((reason) => {
-        return {
-          status: 'rejected',
-          reason,
-        };
-      });
-    });
+  let mappedPromises = promises.map((p) =>
+    p
+      .then((value) => ({ status: 'fulfilled', value }))
+      .catch((reason) => ({ status: 'rejected', reason }))
+  );
   return Promise.all(mappedPromises);
 };
 
-/** Polyfill to fix crypto package (are TypeMismatchError and QuotaExceededError still necessary?) */
+// Polyfills d'erreurs du Web Crypto
 class TypeMismatchError extends Error {}
 class QuotaExceededError extends Error {}
 
-/** Replacement function to digest for React Native, we could migrate to Crypto.digest (from expo) but it returns a promise */
- async function _digest(name, data) {
-   let hash = sha256.create().update(data).digest();
-   return hash
- }
-
-/** Assign crypto polyfills to global.crypto object */
-global.crypto = {
- getRandomValues: Crypto.getRandomValues,
- subtle: {
-   digest: _digest
- }
+/** Digest polyfill utilisant expo-crypto */
+async function _digest(algorithm: string, data: string | Uint8Array) {
+  const input = typeof data === 'string' ? data : Buffer.from(data).toString('utf8');
+  return await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    input,
+    { encoding: Crypto.CryptoEncoding.HEX }
+  );
 }
+
+/** Assignation globale */
+global.crypto = {
+  getRandomValues: (arr: Uint8Array) => {
+    if (!(arr instanceof Uint8Array)) throw new TypeError('Expected Uint8Array');
+    const randomBytes = NativeModules.RNRandomBytes.randomBytes(arr.length);
+    for (let i = 0; i < arr.length; i++) arr[i] = randomBytes[i];
+    return arr;
+  },
+  subtle: {
+    digest: _digest,
+  },
+};
