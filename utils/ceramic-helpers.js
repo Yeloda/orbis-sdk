@@ -2,7 +2,7 @@ import { Cacao, SiweMessage } from '@didtools/cacao';
 import { DIDSession, createDIDKey, createDIDCacao } from 'did-session'
 import { evmEmptyAuthSig, executeLitAction } from "./lit-helpers.js";
 
-import { randomBytes, randomString } from './utils/random-polyfill';
+import { randomBytes, randomString } from './random-polyfill';
 
 /** Used to connect an Oauth user to its PKP */
  export async function authenticatePkp(options) {
